@@ -278,79 +278,31 @@ orderSchema.index(
  *
  * subtotal = quantity × unitPrice
  */
-orderSchema.pre("validate", function (next) {
+orderSchema.pre("validate", function () {
   for (const item of this.items) {
-    const calculatedSubtotal =
-      item.quantity * item.unitPrice;
-
-    // Round to 2 decimal places
-    const expectedSubtotal =
-      Math.round(calculatedSubtotal * 100) / 100;
-
-    const actualSubtotal =
-      Math.round(item.subtotal * 100) / 100;
+    const calculatedSubtotal = item.quantity * item.unitPrice;
+    const expectedSubtotal = Math.round(calculatedSubtotal * 100) / 100;
+    const actualSubtotal = Math.round(item.subtotal * 100) / 100;
 
     if (expectedSubtotal !== actualSubtotal) {
-      return next(
-        new Error(
-          `Invalid subtotal for product ${item.productName}`
-        )
-      );
+      throw new Error(`Invalid subtotal for product ${item.productName}`);
     }
   }
 
-  /*
-  |--------------------------------------------------------------------------
-  | Validate order subtotal
-  |--------------------------------------------------------------------------
-  */
-
-  const calculatedSubtotal = this.items.reduce(
-    (total, item) => total + item.subtotal,
-    0
-  );
-
-  const expectedSubtotal =
-    Math.round(calculatedSubtotal * 100) / 100;
-
-  const actualSubtotal =
-    Math.round(this.subtotal * 100) / 100;
+  const calculatedSubtotal = this.items.reduce((total, item) => total + item.subtotal, 0);
+  const expectedSubtotal = Math.round(calculatedSubtotal * 100) / 100;
+  const actualSubtotal = Math.round(this.subtotal * 100) / 100;
 
   if (expectedSubtotal !== actualSubtotal) {
-    return next(
-      new Error("Order subtotal does not match order items")
-    );
+    throw new Error("Order subtotal does not match order items");
   }
-
-  /*
-  |--------------------------------------------------------------------------
-  | Validate total
-  |--------------------------------------------------------------------------
-  |
-  | Currently:
-  |
-  | total = subtotal
-  |
-  | You can later add:
-  |
-  | shipping
-  | discounts
-  | tax
-  |
-  */
 
   const expectedTotal = expectedSubtotal;
-
-  const actualTotal =
-    Math.round(this.total * 100) / 100;
+  const actualTotal = Math.round(this.total * 100) / 100;
 
   if (expectedTotal !== actualTotal) {
-    return next(
-      new Error("Order total does not match order subtotal")
-    );
+    throw new Error("Order total does not match order subtotal");
   }
-
-  next();
 });
 
 /*

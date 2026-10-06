@@ -215,18 +215,14 @@ productSchema.index(
 /**
  * Make sure SKUs are unique inside a product.
  */
-productSchema.pre("validate", function (next) {
+productSchema.pre("validate", function () {
   const skus = this.variants.map((variant) => variant.sku);
 
   const uniqueSkus = new Set(skus);
 
   if (skus.length !== uniqueSkus.size) {
-    return next(
-      new Error("Each product variant must have a unique SKU")
-    );
+    throw new Error("Each product variant must have a unique SKU");
   }
-
-  next();
 });
 
 /*

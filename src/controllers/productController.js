@@ -6,7 +6,45 @@ const { createProductSchema, updateProductSchema } = require('../validators/prod
 // @access  Public
 const getProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ isActive: true });
+    const { search, category, minPrice, maxPrice, size, color, sort } = req.query;
+    
+    let query = { isActive: true };
+
+    // Search by product name (Text Index)
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    // Category filtering
+    if (category) {
+      query.category = category.toLowerCase();
+    }
+
+    // Price filtering
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Size & Color filtering (queries the variants array)
+    if (size || color) {
+      const variantMatch = {};
+      if (size) variantMatch.size = new RegExp(`^${size}$`, 'i');
+      if (color) variantMatch.color = new RegExp(`^${color}$`, 'i');
+      
+      // If there are variant conditions, use $elemMatch so both apply to the SAME variant
+      query.variants = { $elemMatch: variantMatch };
+    }
+
+    // Sorting
+    let sortOption = { createdAt: -1 }; // Default sorting (newest first)
+    if (sort === 'price_asc') sortOption = { price: 1 };
+    if (sort === 'price_desc') sortOption = { price: -1 };
+    if (sort === 'name_asc') sortOption = { name: 1 };
+    if (sort === 'name_desc') sortOption = { name: -1 };
+
+    const products = await Product.find(query).sort(sortOption);
     res.status(200).json({ status: 'success', count: products.length, data: { products } });
   } catch (error) {
     next(error);
