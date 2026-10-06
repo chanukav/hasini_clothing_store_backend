@@ -1,7 +1,5 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs"); // Wait, user used bcryptjs but bcrypt is installed. I will use bcrypt since it is already installed.
-// The user code has require("bcryptjs"), let me check package.json to see if bcrypt or bcryptjs is installed. 
-// From earlier view_file, "bcrypt": "^6.0.0" is installed. I will change it to require("bcrypt").
+const bcrypt = require("bcryptjs");
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -90,18 +88,14 @@ userSchema.index(
 |--------------------------------------------------------------------------
 */
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   // Only hash password when it is modified
   if (!this.isModified("password")) {
-    return next();
+    return;
   }
 
-  const bcrypt = require("bcrypt"); // using bcrypt instead of bcryptjs
   const salt = await bcrypt.genSalt(12);
-
   this.password = await bcrypt.hash(this.password, salt);
-
-  next();
 });
 
 /*
@@ -111,7 +105,6 @@ userSchema.pre("save", async function (next) {
 */
 
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  const bcrypt = require("bcrypt");
   return bcrypt.compare(candidatePassword, this.password);
 };
 
