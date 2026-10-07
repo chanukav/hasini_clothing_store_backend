@@ -100,7 +100,7 @@ const updateProduct = async (req, res, next) => {
     const validatedData = updateProductSchema.parse(req.body);
     
     const product = await Product.findByIdAndUpdate(req.params.id, validatedData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true
     });
     
@@ -125,7 +125,7 @@ const deactivateProduct = async (req, res, next) => {
     const product = await Product.findByIdAndUpdate(
       req.params.id, 
       { isActive: false },
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!product) {

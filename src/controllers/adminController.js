@@ -1,4 +1,6 @@
 const Order = require('../models/Order');
+const User = require('../models/User');
+const Product = require('../models/Product');
 
 // @desc    Get all orders
 // @route   GET /api/admin/orders
@@ -26,7 +28,7 @@ const updateOrderStatus = async (req, res, next) => {
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     
     if (!order) {
@@ -67,8 +69,82 @@ const getDashboardMetrics = async (req, res, next) => {
   }
 };
 
+// @desc    Get all customers
+// @route   GET /api/admin/customers
+// @access  Admin
+const getAllCustomers = async (req, res, next) => {
+  try {
+    const customers = await User.find({ role: 'CUSTOMER' }).sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', count: customers.length, data: { customers } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update customer status
+// @route   PUT /api/admin/customers/:id/status
+// @access  Admin
+const updateCustomerStatus = async (req, res, next) => {
+  try {
+    const { isActive } = req.body;
+    
+    const customer = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive },
+      { returnDocument: 'after', runValidators: true }
+    );
+    
+    if (!customer) {
+      return res.status(404).json({ status: 'error', message: 'Customer not found' });
+    }
+    
+    res.status(200).json({ status: 'success', data: { customer } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all products (admin bypasses active filter)
+// @route   GET /api/admin/products
+// @access  Admin
+const getAllProducts = async (req, res, next) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', count: products.length, data: { products } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update product status
+// @route   PUT /api/admin/products/:id/status
+// @access  Admin
+const updateProductStatus = async (req, res, next) => {
+  try {
+    const { isActive } = req.body;
+    
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { isActive },
+      { returnDocument: 'after', runValidators: true }
+    );
+    
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    
+    res.status(200).json({ status: 'success', data: { product } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllOrders,
   updateOrderStatus,
-  getDashboardMetrics
+  getDashboardMetrics,
+  getAllCustomers,
+  updateCustomerStatus,
+  getAllProducts,
+  updateProductStatus
 };
