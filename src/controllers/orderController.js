@@ -163,7 +163,7 @@ const payhereNotify = async (req, res, next) => {
       .update(merchant_id + order_id + payhere_amount + payhere_currency + status_code + hashedSecret)
       .digest('hex').toUpperCase();
 
-    if (localMd5sig === md5sig) {
+    if (localMd5sig === md5sig?.toUpperCase()) {
       if (status_code == 2) {
         // Success
         await Order.findOneAndUpdate({ orderNumber: order_id }, { paymentStatus: 'PAID', orderStatus: 'PROCESSING' });
