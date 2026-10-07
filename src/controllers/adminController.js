@@ -81,6 +81,45 @@ const getAllCustomers = async (req, res, next) => {
   }
 };
 
+// @desc    Get all admins
+// @route   GET /api/admin/admins
+// @access  Admin
+const getAllAdmins = async (req, res, next) => {
+  try {
+    const admins = await User.find({ role: { $in: ['ADMIN', 'SUPER_ADMIN'] } }).sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', count: admins.length, data: { admins } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update admin role
+// @route   PUT /api/admin/admins/:id/role
+// @access  Admin (Preferably SUPER_ADMIN but keeping open as requested)
+const updateAdminRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid role' });
+    }
+
+    const admin = await User.findByIdAndUpdate(
+      req.params.id,
+      { role },
+      { returnDocument: 'after', runValidators: true }
+    );
+    
+    if (!admin) {
+      return res.status(404).json({ status: 'error', message: 'Admin not found' });
+    }
+    
+    res.status(200).json({ status: 'success', data: { admin } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update customer status
 // @route   PUT /api/admin/customers/:id/status
 // @access  Admin
@@ -145,6 +184,8 @@ module.exports = {
   getDashboardMetrics,
   getAllCustomers,
   updateCustomerStatus,
+  getAllAdmins,
+  updateAdminRole,
   getAllProducts,
   updateProductStatus
 };

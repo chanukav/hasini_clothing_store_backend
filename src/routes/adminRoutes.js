@@ -5,6 +5,8 @@ const {
   getDashboardMetrics,
   getAllCustomers,
   updateCustomerStatus,
+  getAllAdmins,
+  updateAdminRole,
   getAllProducts,
   updateProductStatus
 } = require('../controllers/adminController');
@@ -20,6 +22,8 @@ router.put('/orders/:id/status', updateOrderStatus);
 router.get('/dashboard', getDashboardMetrics);
 router.get('/customers', getAllCustomers);
 router.put('/customers/:id/status', updateCustomerStatus);
+router.get('/admins', getAllAdmins);
+router.put('/admins/:id/role', updateAdminRole);
 router.get('/products', getAllProducts);
 router.put('/products/:id/status', updateProductStatus);
 

@@ -32,7 +32,7 @@ const protect = async (req, res, next) => {
 };
 
 const restrictToAdmin = (req, res, next) => {
-  if (req.user.role !== 'ADMIN') {
+  if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
     return res.status(403).json({ status: 'error', message: 'You do not have permission to perform this action' });
   }
   next();

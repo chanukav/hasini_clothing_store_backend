@@ -86,7 +86,8 @@ const createProduct = async (req, res, next) => {
     res.status(201).json({ status: 'success', data: { product } });
   } catch (error) {
     if (error.name === 'ZodError') {
-      return res.status(400).json({ status: 'error', message: error.errors[0].message, errors: error.errors });
+      const issues = error.errors || error.issues;
+      return res.status(400).json({ status: 'error', message: issues?.[0]?.message || 'Validation error', errors: issues });
     }
     next(error);
   }
@@ -111,28 +112,25 @@ const updateProduct = async (req, res, next) => {
     res.status(200).json({ status: 'success', data: { product } });
   } catch (error) {
     if (error.name === 'ZodError') {
-      return res.status(400).json({ status: 'error', message: error.errors[0].message, errors: error.errors });
+      const issues = error.errors || error.issues;
+      return res.status(400).json({ status: 'error', message: issues?.[0]?.message || 'Validation error', errors: issues });
     }
     next(error);
   }
 };
 
-// @desc    Deactivate a product (soft delete)
+// @desc    Delete a product completely
 // @route   DELETE /api/products/:id
 // @access  Admin
-const deactivateProduct = async (req, res, next) => {
+const deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id, 
-      { isActive: false },
-      { returnDocument: 'after' }
-    );
+    const product = await Product.findByIdAndDelete(req.params.id);
     
     if (!product) {
       return res.status(404).json({ status: 'error', message: 'Product not found' });
     }
     
-    res.status(200).json({ status: 'success', message: 'Product deactivated successfully' });
+    res.status(200).json({ status: 'success', message: 'Product deleted successfully' });
   } catch (error) {
     next(error);
   }
@@ -143,5 +141,5 @@ module.exports = {
   getProductById,
   createProduct,
   updateProduct,
-  deactivateProduct
+  deleteProduct
 };
