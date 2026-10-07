@@ -37,7 +37,7 @@ const register = async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === 'ZodError') {
-      return res.status(400).json({ status: 'error', message: error.errors[0].message, errors: error.errors });
+      return res.status(400).json({ status: 'error', message: error.issues[0].message, errors: error.issues });
     }
     next(error);
   }
@@ -73,7 +73,7 @@ const login = async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === 'ZodError') {
-      return res.status(400).json({ status: 'error', message: error.errors[0].message, errors: error.errors });
+      return res.status(400).json({ status: 'error', message: error.issues[0].message, errors: error.issues });
     }
     next(error);
   }
