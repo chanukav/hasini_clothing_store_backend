@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const { createOrderSchema } = require('../validators/orderValidator');
+const crypto = require('crypto');
 
 // @desc    Create new order
 // @route   POST /api/orders
@@ -81,7 +82,22 @@ const createOrder = async (req, res, next) => {
       );
     }
 
-    res.status(201).json({ status: 'success', data: { order } });
+    let paymentHash = null;
+    let merchantId = null;
+
+    if (paymentMethod === 'PAYHERE') {
+      merchantId = process.env.PAYHERE_MERCHANT_ID;
+      const merchantSecret = process.env.PAYHERE_SECRET;
+      if (merchantId && merchantSecret) {
+        const amountFormatted = total.toLocaleString('en-us', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, '');
+        const currency = 'LKR';
+        const hashedSecret = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
+        const hashString = merchantId + order.orderNumber + amountFormatted + currency + hashedSecret;
+        paymentHash = crypto.createHash('md5').update(hashString).digest('hex').toUpperCase();
+      }
+    }
+
+    res.status(201).json({ status: 'success', data: { order, paymentHash, merchantId } });
   } catch (error) {
     if (error.name === 'ZodError') {
       return res.status(400).json({ status: 'error', message: error.errors[0].message, errors: error.errors });
@@ -124,8 +140,48 @@ const getOrderById = async (req, res, next) => {
   }
 };
 
+// @desc    Handle PayHere Webhook Notify
+// @route   POST /api/orders/payhere/notify
+// @access  Public
+const payhereNotify = async (req, res, next) => {
+  try {
+    const { 
+      merchant_id, 
+      order_id, 
+      payhere_amount, 
+      payhere_currency, 
+      status_code, 
+      md5sig 
+    } = req.body;
+
+    const merchantSecret = process.env.PAYHERE_SECRET;
+    if (!merchantSecret) return res.status(200).send(); // Ignore if not configured
+
+    const hashedSecret = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
+    
+    const localMd5sig = crypto.createHash('md5')
+      .update(merchant_id + order_id + payhere_amount + payhere_currency + status_code + hashedSecret)
+      .digest('hex').toUpperCase();
+
+    if (localMd5sig === md5sig) {
+      if (status_code == 2) {
+        // Success
+        await Order.findOneAndUpdate({ orderNumber: order_id }, { paymentStatus: 'PAID', orderStatus: 'PROCESSING' });
+      } else if (status_code == 0 || status_code == -1 || status_code == -2 || status_code == -3) {
+        // Failed / Canceled
+        await Order.findOneAndUpdate({ orderNumber: order_id }, { paymentStatus: 'FAILED' });
+      }
+    }
+    res.status(200).send();
+  } catch (error) {
+    console.error('PayHere Notify Error:', error);
+    res.status(500).send();
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
-  getOrderById
+  getOrderById,
+  payhereNotify
 };
