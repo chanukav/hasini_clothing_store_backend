@@ -93,6 +93,13 @@ const productSchema = new mongoose.Schema(
       maxlength: [100, "Category cannot exceed 100 characters"],
     },
 
+    subcategory: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      default: '',
+    },
+
     price: {
       type: Number,
       required: [true, "Product price is required"],

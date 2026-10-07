@@ -12,6 +12,7 @@ const createProductSchema = z.object({
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(180),
   description: z.string().min(10).max(5000),
   category: z.string().max(100),
+  subcategory: z.string().optional(),
   price: z.number().min(0.01),
   images: z.array(z.string().url()).min(1),
   variants: z.array(variantSchema).min(1),

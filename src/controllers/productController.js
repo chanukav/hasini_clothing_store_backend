@@ -6,7 +6,7 @@ const { createProductSchema, updateProductSchema } = require('../validators/prod
 // @access  Public
 const getProducts = async (req, res, next) => {
   try {
-    const { search, category, minPrice, maxPrice, size, color, sort } = req.query;
+    const { search, category, subcategory, minPrice, maxPrice, size, color, sort } = req.query;
     
     let query = { isActive: true };
 
@@ -18,6 +18,11 @@ const getProducts = async (req, res, next) => {
     // Category filtering
     if (category) {
       query.category = category.toLowerCase();
+    }
+
+    // Subcategory filtering
+    if (subcategory) {
+      query.subcategory = subcategory.toLowerCase();
     }
 
     // Price filtering
