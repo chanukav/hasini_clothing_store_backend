@@ -41,17 +41,21 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-// @desc    Delete an order
+// @desc    Delete an order (idempotent)
 // @route   DELETE /api/admin/orders/:id
 // @access  Admin
 const deleteOrder = async (req, res, next) => {
   try {
     const order = await Order.findByIdAndDelete(req.params.id);
-    if (!order) {
-      return res.status(404).json({ status: 'error', message: 'Order not found' });
-    }
-    res.status(200).json({ status: 'success', message: 'Order deleted successfully' });
+    res.status(200).json({
+      status: 'success',
+      message: order ? 'Order deleted successfully' : 'Order already deleted or not found'
+    });
   } catch (error) {
+    // If invalid mongo objectId, still return success since it cannot exist
+    if (error.name === 'CastError') {
+      return res.status(200).json({ status: 'success', message: 'Order already deleted or invalid ID' });
+    }
     next(error);
   }
 };
