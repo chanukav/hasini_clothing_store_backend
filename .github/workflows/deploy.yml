@@ -42,49 +42,36 @@ jobs:
           script: |
             set -e
             echo "Starting Backend deployment on AWS EC2 via Docker Compose..."
-
-            # Ensure app directory exists
             mkdir -p ~/app
             cd ~/app
 
             # Write or update backend environment variables
-            cat << 'EOF' > .env.backend
-PORT=5000
-MONGO_URI=${{ secrets.MONGO_URI }}
-JWT_SECRET=${{ secrets.JWT_SECRET }}
-PAYHERE_MERCHANT_ID=${{ secrets.PAYHERE_MERCHANT_ID }}
-PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}
-EOF
+            echo "PORT=5000" > .env.backend
+            echo "MONGO_URI=${{ secrets.MONGO_URI }}" >> .env.backend
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env.backend
+            echo "PAYHERE_MERCHANT_ID=${{ secrets.PAYHERE_MERCHANT_ID }}" >> .env.backend
+            echo "PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}" >> .env.backend
 
-            # Write or update docker-compose.yml with valid YAML indentation
-            cat << 'EOF' > docker-compose.yml
-services:
-  backend:
-    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
-    container_name: hasini-backend
-    restart: always
-    ports:
-      - "5000:5000"
-    env_file:
-      - .env.backend
-    networks:
-      - app-network
-
-  frontend:
-    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-frontend:latest
-    container_name: hasini-frontend
-    restart: always
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    driver: bridge
-EOF
+            # Ensure docker-compose.yml exists
+            if [ ! -f docker-compose.yml ]; then
+              echo "services:" > docker-compose.yml
+              echo "  backend:" >> docker-compose.yml
+              echo "    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest" >> docker-compose.yml
+              echo "    container_name: hasini-backend" >> docker-compose.yml
+              echo "    restart: always" >> docker-compose.yml
+              echo "    ports:" >> docker-compose.yml
+              echo "      - '5000:5000'" >> docker-compose.yml
+              echo "    env_file:" >> docker-compose.yml
+              echo "      - .env.backend" >> docker-compose.yml
+              echo "  frontend:" >> docker-compose.yml
+              echo "    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-frontend:latest" >> docker-compose.yml
+              echo "    container_name: hasini-frontend" >> docker-compose.yml
+              echo "    restart: always" >> docker-compose.yml
+              echo "    ports:" >> docker-compose.yml
+              echo "      - '80:80'" >> docker-compose.yml
+              echo "    depends_on:" >> docker-compose.yml
+              echo "      - backend" >> docker-compose.yml
+            fi
 
             # Explicitly pull latest image to local Docker daemon
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
