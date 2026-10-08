@@ -1,0 +1,76 @@
+name: Build & Deploy Backend to AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build Docker Image and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:${{ github.sha }}
+
+      - name: Deploy to AWS EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            echo "Starting deployment on AWS EC2..."
+
+            # Create deployment directory if not exists
+            mkdir -p ~/app
+            cd ~/app
+
+            # Generate environment variables file for backend
+            cat << 'EOF' > .env.backend
+            PORT=5000
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            PAYHERE_MERCHANT_ID=${{ secrets.PAYHERE_MERCHANT_ID }}
+            PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}
+            EOF
+
+            # Pull newly pushed Docker image
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+
+            # Stop and remove existing container if running
+            docker stop hasini-backend || true
+            docker rm hasini-backend || true
+
+            # Run new container
+            docker run -d \
+              --name hasini-backend \
+              --restart always \
+              -p 5000:5000 \
+              --env-file .env.backend \
+              ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+
+            # Clean up old unused images to save disk space
+            docker image prune -f
+
+            echo "Backend successfully deployed!"
