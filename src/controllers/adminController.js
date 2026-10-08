@@ -41,6 +41,21 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
+// @desc    Delete an order
+// @route   DELETE /api/admin/orders/:id
+// @access  Admin
+const deleteOrder = async (req, res, next) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
+    if (!order) {
+      return res.status(404).json({ status: 'error', message: 'Order not found' });
+    }
+    res.status(200).json({ status: 'success', message: 'Order deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get dashboard metrics
 // @route   GET /api/admin/dashboard
 // @access  Admin
@@ -181,6 +196,7 @@ const updateProductStatus = async (req, res, next) => {
 module.exports = {
   getAllOrders,
   updateOrderStatus,
+  deleteOrder,
   getDashboardMetrics,
   getAllCustomers,
   updateCustomerStatus,

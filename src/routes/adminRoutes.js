@@ -2,6 +2,7 @@ const express = require('express');
 const {
   getAllOrders,
   updateOrderStatus,
+  deleteOrder,
   getDashboardMetrics,
   getAllCustomers,
   updateCustomerStatus,
@@ -19,6 +20,7 @@ router.use(restrictToAdmin);
 
 router.get('/orders', getAllOrders);
 router.put('/orders/:id/status', updateOrderStatus);
+router.delete('/orders/:id', deleteOrder);
 router.get('/dashboard', getDashboardMetrics);
 router.get('/customers', getAllCustomers);
 router.put('/customers/:id/status', updateCustomerStatus);
