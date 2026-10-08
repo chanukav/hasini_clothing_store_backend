@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/chanukav/hasini_clothing_store_backend#readme",
   "dependencies": {
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.5",
