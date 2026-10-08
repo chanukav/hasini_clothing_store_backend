@@ -33,6 +33,15 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:${{ github.sha }}
 
+      - name: Copy docker-compose.yml to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "~/app"
+
       - name: Deploy to AWS EC2 via Docker Compose
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -52,32 +61,13 @@ jobs:
             echo "PAYHERE_MERCHANT_ID=${{ secrets.PAYHERE_MERCHANT_ID }}" >> .env.backend
             echo "PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}" >> .env.backend
 
-            # Ensure docker-compose.yml exists
-            if [ ! -f docker-compose.yml ]; then
-              echo "services:" > docker-compose.yml
-              echo "  backend:" >> docker-compose.yml
-              echo "    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest" >> docker-compose.yml
-              echo "    container_name: hasini-backend" >> docker-compose.yml
-              echo "    restart: always" >> docker-compose.yml
-              echo "    ports:" >> docker-compose.yml
-              echo "      - '5000:5000'" >> docker-compose.yml
-              echo "    env_file:" >> docker-compose.yml
-              echo "      - .env.backend" >> docker-compose.yml
-              echo "  frontend:" >> docker-compose.yml
-              echo "    image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-frontend:latest" >> docker-compose.yml
-              echo "    container_name: hasini-frontend" >> docker-compose.yml
-              echo "    restart: always" >> docker-compose.yml
-              echo "    ports:" >> docker-compose.yml
-              echo "      - '80:80'" >> docker-compose.yml
-              echo "    depends_on:" >> docker-compose.yml
-              echo "      - backend" >> docker-compose.yml
-            fi
-
             # Explicitly pull latest image to local Docker daemon
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
 
             # Update and restart only the backend container with zero downtime
             docker compose up -d --no-deps backend
+            # Ensure the proxy containers are running
+            docker compose up -d nginx-proxy acme-companion
 
             # Clean up dangling images to save disk space
             docker image prune -f
