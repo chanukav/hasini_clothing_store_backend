@@ -1,0 +1,26 @@
+services:
+  backend:
+    image: ${DOCKERHUB_USERNAME:-chanukav}/hasini-backend:latest
+    container_name: hasini-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.backend
+    networks:
+      - app-network
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-chanukav}/hasini-frontend:latest
+    container_name: hasini-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

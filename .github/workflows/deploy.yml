@@ -32,7 +32,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:${{ github.sha }}
 
-      - name: Deploy to AWS EC2 via SSH
+      - name: Deploy to AWS EC2 via Docker Compose
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -40,13 +40,13 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             set -e
-            echo "Starting deployment on AWS EC2..."
+            echo "Starting Backend deployment on AWS EC2 via Docker Compose..."
 
-            # Create deployment directory if not exists
+            # Ensure app directory exists
             mkdir -p ~/app
             cd ~/app
 
-            # Generate environment variables file for backend
+            # Write or update backend environment variables
             cat << 'EOF' > .env.backend
             PORT=5000
             MONGO_URI=${{ secrets.MONGO_URI }}
@@ -55,22 +55,41 @@ jobs:
             PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}
             EOF
 
-            # Pull newly pushed Docker image
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+            # Write or update docker-compose.yml
+            cat << 'EOF' > docker-compose.yml
+            services:
+              backend:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+                container_name: hasini-backend
+                restart: always
+                ports:
+                  - "5000:5000"
+                env_file:
+                  - .env.backend
+                networks:
+                  - app-network
 
-            # Stop and remove existing container if running
-            docker stop hasini-backend || true
-            docker rm hasini-backend || true
+              frontend:
+                image: ${{ secrets.DOCKERHUB_USERNAME }}/hasini-frontend:latest
+                container_name: hasini-frontend
+                restart: always
+                ports:
+                  - "80:80"
+                depends_on:
+                  - backend
+                networks:
+                  - app-network
 
-            # Run new container
-            docker run -d \
-              --name hasini-backend \
-              --restart always \
-              -p 5000:5000 \
-              --env-file .env.backend \
-              ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
+            networks:
+              app-network:
+                driver: bridge
+            EOF
 
-            # Clean up old unused images to save disk space
+            # Pull latest backend image and update the container seamlessly
+            docker compose pull backend
+            docker compose up -d --no-deps backend
+
+            # Clean up dangling images to save disk space
             docker image prune -f
 
-            echo "Backend successfully deployed!"
+            echo "Backend successfully deployed with Docker Compose!"
