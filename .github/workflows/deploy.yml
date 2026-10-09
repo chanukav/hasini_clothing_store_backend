@@ -61,6 +61,11 @@ jobs:
             echo "PAYHERE_MERCHANT_ID=${{ secrets.PAYHERE_MERCHANT_ID }}" >> .env.backend
             echo "PAYHERE_SECRET=${{ secrets.PAYHERE_SECRET }}" >> .env.backend
 
+            # Pre-pull cleanup: free up disk space and clean orphaned containerd ingest cache
+            echo "Cleaning up disk space before pulling..."
+            docker image prune -af || true
+            sudo rm -rf /var/lib/containerd/io.containerd.content.v1.content/ingest/* 2>/dev/null || true
+
             # Explicitly pull latest image to local Docker daemon
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/hasini-backend:latest
 
