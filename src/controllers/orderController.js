@@ -63,7 +63,7 @@ const createOrder = async (req, res, next) => {
     // 4. Create Order
     const order = await Order.create({
       orderNumber,
-      customer: req.user._id,
+      customer: req.user ? req.user._id : null,
       customerDetails,
       items: orderItems,
       subtotal,
@@ -129,9 +129,14 @@ const getOrderById = async (req, res, next) => {
       return res.status(404).json({ status: 'error', message: 'Order not found' });
     }
 
-    // Ensure user is admin OR the owner of the order
-    if (req.user.role !== 'ADMIN' && order.customer.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ status: 'error', message: 'You do not have permission to view this order' });
+    // Ensure user is admin OR the owner of the order (for registered customer orders)
+    if (order.customer) {
+      if (!req.user) {
+        return res.status(401).json({ status: 'error', message: 'Please log in to view this order' });
+      }
+      if (req.user.role !== 'ADMIN' && order.customer.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ status: 'error', message: 'You do not have permission to view this order' });
+      }
     }
     
     res.status(200).json({ status: 'success', data: { order } });

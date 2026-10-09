@@ -38,4 +38,30 @@ const restrictToAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { protect, restrictToAdmin };
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+    
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+    
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+        const user = await User.findById(decoded.id);
+        if (user && user.isActive) {
+          req.user = user;
+        }
+      } catch (err) {
+        // Token invalid or expired - proceed as unauthenticated/guest
+      }
+    }
+    
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
+module.exports = { protect, restrictToAdmin, optionalAuth };
